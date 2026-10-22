@@ -1,164 +1,327 @@
 <!DOCTYPE html>
-<html lang="zh-CN">
+<html lang="zh-CN" data-theme="dark">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-<meta name="theme-color" content="#0a0a0f">
-<title>TYT UVL-15W · 写频工具</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>TYT UVL-15W 网页写频工具</title>
+<meta name="description" content="TYT UVL-15W 对讲机网页写频工具：通过 USB 串口或蓝牙读写信道、VFO 与设备信息，支持 CSV / JSON 导入导出。">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%233ecf8e' stroke-width='2' stroke-linecap='round'%3E%3Ccircle cx='12' cy='18' r='1.6' fill='%233ecf8e' stroke='none'/%3E%3Cpath d='M8.7 14.6a4.6 4.6 0 0 1 6.6 0'/%3E%3Cpath d='M5.6 11.4a9 9 0 0 1 12.8 0'/%3E%3C/svg%3E">
+<script>
+/* 主题初始化：localStorage 优先，其次跟随系统偏好，避免首屏闪烁 */
+(function () {
+  try {
+    var t = localStorage.getItem("uvl-theme");
+    if (!t) t = window.matchMedia("(prefers-color-scheme: light)").matches ? "light" : "dark";
+    document.documentElement.setAttribute("data-theme", t);
+  } catch (e) { /* 隐私模式下忽略 */ }
+})();
+</script>
 <link rel="stylesheet" href="css/style.css">
 </head>
 <body>
+
+<!-- ============ 图标符号库 ============ -->
+<svg xmlns="http://www.w3.org/2000/svg" style="display:none" aria-hidden="true">
+  <symbol id="i-broadcast" viewBox="0 0 24 24"><circle cx="12" cy="18" r="1.6" fill="currentColor" stroke="none"/><path d="M8.7 14.6a4.6 4.6 0 0 1 6.6 0"/><path d="M5.6 11.4a9 9 0 0 1 12.8 0"/></symbol>
+  <symbol id="i-table" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M3 10h18M9 10v10"/></symbol>
+  <symbol id="i-wave" viewBox="0 0 24 24"><path d="M3 12h3.5l2.5-7 4.5 14 2.5-7H21"/></symbol>
+  <symbol id="i-cpu" viewBox="0 0 24 24"><rect x="5" y="5" width="14" height="14" rx="2"/><rect x="9" y="9" width="6" height="6"/><path d="M9 2v3M15 2v3M9 19v3M15 19v3M2 9h3M2 15h3M19 9h3M19 15h3"/></symbol>
+  <symbol id="i-terminal" viewBox="0 0 24 24"><rect x="2.5" y="4" width="19" height="16" rx="2"/><path d="M7 9.5l3 3-3 3M12.5 15.5H17"/></symbol>
+  <symbol id="i-sliders" viewBox="0 0 24 24"><path d="M21 4h-7M10 4H3M21 12h-9M12 12H3M17 20h4M8 20H3"/><path d="M14 2v4M11 10v4M8 18v4"/></symbol>
+  <symbol id="i-plug" viewBox="0 0 24 24"><path d="M9 2v6M15 2v6"/><path d="M6 8h12v4a6 6 0 0 1-12 0V8z"/><path d="M12 18v4"/></symbol>
+  <symbol id="i-bt" viewBox="0 0 24 24"><path d="M7 7l10 10-5 5V2l5 5L7 17"/></symbol>
+  <symbol id="i-power" viewBox="0 0 24 24"><path d="M12 3v9"/><path d="M18.4 6.6a9 9 0 1 1-12.8 0"/></symbol>
+  <symbol id="i-download" viewBox="0 0 24 24"><path d="M12 3v11"/><path d="M7 10l5 5 5-5"/><path d="M4 20h16"/></symbol>
+  <symbol id="i-upload" viewBox="0 0 24 24"><path d="M12 16V4"/><path d="m7 9 5-5 5 5"/><path d="M4 20h16"/></symbol>
+  <symbol id="i-sun" viewBox="0 0 24 24"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></symbol>
+  <symbol id="i-moon" viewBox="0 0 24 24"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/></symbol>
+  <symbol id="i-menu" viewBox="0 0 24 24"><path d="M3 6h18M3 12h18M3 18h18"/></symbol>
+  <symbol id="i-pointer" viewBox="0 0 24 24"><path d="m3 3 7 17 2.5-6.5L19 11 3 3z"/></symbol>
+  <symbol id="i-refresh" viewBox="0 0 24 24"><path d="M21 12a9 9 0 1 1-2.6-6.4"/><path d="M21 3v6h-6"/></symbol>
+  <symbol id="i-close" viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></symbol>
+</svg>
+
 <div class="app">
 
-  <!-- 顶部栏 -->
-  <header class="topbar">
+  <!-- ============ 侧边栏 ============ -->
+  <aside class="sidebar" id="sidebar">
     <div class="brand">
-      <div class="brand-mark">UV</div>
+      <div class="brand-mark"><svg class="icon icon-lg"><use href="#i-broadcast"/></svg></div>
       <div class="brand-text">
         <strong>UVL-15W</strong>
-        <span>写频工具</span>
+        <span>网页写频工具</span>
       </div>
     </div>
-    <div class="topbar-actions">
-      <button id="btnSerial" class="btn btn-accent">USB</button>
-      <button id="btnBle" class="btn btn-accent">BLE</button>
-      <button id="btnDisconnect" class="btn" disabled>断开</button>
-      <span class="topbar-vr"></span>
-      <button id="btnRead" class="btn" disabled>读取</button>
-      <button id="btnWriteAll" class="btn btn-danger" disabled>写入</button>
-      <span class="status" id="status">未连接</span>
-    </div>
-  </header>
 
-  <div class="progress-wrap" id="progressWrap"><div class="progress-bar" id="progressBar"></div></div>
-  <div class="dev-bar" id="devBar"></div>
+    <nav class="nav" aria-label="主导航">
+      <div class="nav-label">工作区</div>
+      <button type="button" class="tab active" data-tab="ch">
+        <svg class="icon"><use href="#i-table"/></svg><span>信道读写</span>
+      </button>
+      <button type="button" class="tab" data-tab="vfo">
+        <svg class="icon"><use href="#i-wave"/></svg><span>频率模式</span>
+      </button>
+      <button type="button" class="tab" data-tab="dev">
+        <svg class="icon"><use href="#i-cpu"/></svg><span>设备信息</span>
+      </button>
+      <button type="button" class="tab" data-tab="log">
+        <svg class="icon"><use href="#i-terminal"/></svg><span>通信日志</span>
+      </button>
+      <button type="button" class="tab" data-tab="set">
+        <svg class="icon"><use href="#i-sliders"/></svg><span>设置</span>
+      </button>
 
-  <!-- 标签 -->
-  <nav class="tabbar">
-    <button class="tab active" data-tab="ch">信道</button>
-    <button class="tab" data-tab="vfo">频率模式</button>
-    <button class="tab" data-tab="dev">设备</button>
-    <button class="tab" data-tab="log">日志</button>
-    <button class="tab" data-tab="set">设置</button>
-  </nav>
-
-  <main class="content">
-
-    <!-- ================= 信道 ================= -->
-    <section class="page active" id="page-ch">
-      <div class="ch-layout">
-
-        <div class="ch-list">
-          <div class="toolbar">
-            <button id="btnChRead" class="btn" disabled>读取</button>
-            <button id="btnChWrite" class="btn btn-danger" disabled>写入</button>
-            <span class="toolbar-vr"></span>
-            <button id="btnChSelectAll" class="btn btn-ghost">全选</button>
-            <button id="btnChSelectNone" class="btn btn-ghost">清除选择</button>
-            <button id="btnChBatch" class="btn btn-ghost" disabled>批量</button>
-            <span class="toolbar-vr"></span>
-            <button id="btnCsvExport" class="btn btn-ghost">导出</button>
-            <button id="btnCsvImport" class="btn btn-ghost">导入</button>
-            <span class="toolbar-vr"></span>
-            <button id="btnChCopy" class="btn btn-ghost">复制</button>
-            <button id="btnChPaste" class="btn btn-ghost" disabled>粘贴</button>
-            <button id="btnChMoveUp" class="btn btn-ghost" disabled>上移</button>
-            <button id="btnChMoveDown" class="btn btn-ghost" disabled>下移</button>
-            <button id="btnChClear" class="btn btn-ghost btn-ghost-danger" disabled>清空</button>
-          </div>
-
-          <div class="table-wrap">
-            <table class="ch-table">
-              <thead>
-                <tr>
-                  <th class="col-check"><input type="checkbox" id="chCheckAll"></th>
-                  <th class="col-ch">CH</th>
-                  <th class="col-name">名称</th>
-                  <th class="col-freq">接收</th>
-                  <th class="col-freq">发射</th>
-                  <th class="col-dup">差频</th>
-                  <th class="col-tone">编码</th>
-                  <th class="col-tone">解码</th>
-                  <th class="col-pow">功率</th>
-                  <th class="col-bw">带宽</th>
-                  <th class="col-scan">扫描</th>
-                  <th class="col-flag">状态</th>
-                </tr>
-              </thead>
-              <tbody id="chTbody"></tbody>
-            </table>
-          </div>
+      <div class="nav-label nav-label-foot">连接</div>
+      <div class="conn-hint">
+        <span class="conn-dot" id="connDot"></span>
+        <div class="conn-hint-text">
+          <strong id="connState">未连接</strong>
+          <span>USB 串口 / 蓝牙</span>
         </div>
+      </div>
+    </nav>
 
-        <aside class="edit-pane" id="chEditPanel">
-          <div class="empty-edit">
-            <div class="empty-icon">◎</div>
-            <p>选中任一信道开始编辑</p>
+    <div class="sidebar-foot">
+      <button type="button" class="theme-toggle" id="themeToggle">
+        <svg class="icon icon-sun"><use href="#i-sun"/></svg>
+        <svg class="icon icon-moon"><use href="#i-moon"/></svg>
+        <span class="theme-label">浅色模式</span>
+      </button>
+      <p class="sidebar-note">基于 Web Serial / Web Bluetooth<br>需 Chrome 或 Edge 89+</p>
+    </div>
+  </aside>
+
+  <!-- ============ 主区域 ============ -->
+  <div class="main">
+    <header class="topbar">
+      <button type="button" class="icon-btn nav-toggle" id="navToggle" aria-label="打开导航菜单">
+        <svg class="icon"><use href="#i-menu"/></svg>
+      </button>
+      <div class="page-head">
+        <h1 id="pageTitle">信道读写</h1>
+        <p id="pageDesc">读取、编辑并写入对讲机信道参数</p>
+      </div>
+      <div class="topbar-actions">
+        <span class="status" id="status">未连接</span>
+        <span class="tb-sep" aria-hidden="true"></span>
+        <button id="btnSerial" class="primary" aria-label="连接 USB 串口">
+          <svg class="icon"><use href="#i-plug"/></svg><span>连接 USB 串口</span>
+        </button>
+        <button id="btnBle" aria-label="连接蓝牙">
+          <svg class="icon"><use href="#i-bt"/></svg><span>连接蓝牙</span>
+        </button>
+        <button id="btnRead" disabled aria-label="读取全部">
+          <svg class="icon"><use href="#i-download"/></svg><span>读取全部</span>
+        </button>
+        <button id="btnWriteAll" disabled class="danger" aria-label="写入全部">
+          <svg class="icon"><use href="#i-upload"/></svg><span>写入全部</span>
+        </button>
+        <button id="btnDisconnect" disabled aria-label="断开连接">
+          <svg class="icon"><use href="#i-power"/></svg><span>断开</span>
+        </button>
+      </div>
+    </header>
+
+    <div class="progress-wrap" id="progressWrap"><div class="progress-bar" id="progressBar"></div></div>
+    <div class="dev-bar" id="devBar"></div>
+
+    <div class="tab-content">
+
+      <!-- ========== 信道读写 ========== -->
+      <div class="page active" id="page-ch">
+        <div class="ch-layout">
+          <div class="ch-main">
+            <div class="ch-toolbar">
+              <div class="btn-group">
+                <button id="btnChRead" disabled><svg class="icon"><use href="#i-download"/></svg>读取信道</button>
+                <button id="btnChWrite" disabled class="danger"><svg class="icon"><use href="#i-upload"/></svg>写入信道</button>
+              </div>
+              <div class="btn-group">
+                <button id="btnChSelectAll">全选</button>
+                <button id="btnChSelectNone">取消全选</button>
+                <button id="btnChBatch" disabled class="blue">批量修改</button>
+              </div>
+              <div class="btn-group">
+                <button id="btnCsvExport">导出 CSV</button>
+                <button id="btnCsvImport">导入 CSV</button>
+              </div>
+              <div class="btn-group">
+                <button id="btnChCopy">复制</button>
+                <button id="btnChPaste" disabled>粘贴</button>
+                <button id="btnChMoveUp" disabled>上移</button>
+                <button id="btnChMoveDown" disabled>下移</button>
+                <button id="btnChClear" disabled>清空选中</button>
+              </div>
+            </div>
+            <p class="ch-tap-hint">点击任一信道卡片即可编辑参数</p>
+            <div class="ch-table-wrap">
+              <table class="ch-table">
+                <thead><tr>
+                  <th class="th-cb"><input type="checkbox" id="chCheckAll" aria-label="全选所有信道"></th>
+                  <th>CH</th><th>名称</th><th>接收</th><th>发射</th>
+                  <th>差频</th><th>编码</th><th>解码</th><th>功率</th><th>带宽</th><th>扫描</th><th>状态</th>
+                </tr></thead>
+                <tbody id="chTbody"></tbody>
+              </table>
+            </div>
           </div>
 
-          <div id="chEditForm" style="display:none;">
-            <div class="edit-head">
-              <button id="btnChBack" class="btn btn-ghost btn-sm mobile-only" aria-label="返回列表">←</button>
-              <h3 id="chEditTitle">编辑</h3>
-              <button id="btnChRevert" class="btn btn-ghost btn-sm">撤销</button>
+          <aside class="edit-panel" id="chEditPanel">
+            <div class="empty-edit">
+              <div class="empty-icon"><svg class="icon icon-lg"><use href="#i-pointer"/></svg></div>
+              <p>选中左侧任一信道进行编辑</p>
             </div>
+            <div id="chEditForm">
+              <div class="sheet-handle" aria-hidden="true"></div>
+              <header class="edit-head">
+                <h3 id="chEditTitle">编辑 CH1</h3>
+                <div class="edit-head-right">
+                  <span class="edit-badge">CH</span>
+                  <button type="button" class="sheet-close" id="btnSheetClose" aria-label="收起编辑面板">
+                    <svg class="icon"><use href="#i-close"/></svg>
+                  </button>
+                </div>
+              </header>
 
-            <div class="form-row cols-2">
-              <div class="field"><label>接收频率 (MHz)</label><input id="f_rx" inputmode="decimal" placeholder="145.525"></div>
-              <div class="field"><label>发射频率 (MHz)</label><input id="f_tx" inputmode="decimal" placeholder="145.525"></div>
+              <div class="sheet-body">
+              <section class="form-section">
+                <div class="section-title">频率</div>
+                <div class="row2">
+                  <div class="field"><label for="f_rx">接收频率 (MHz)</label><input id="f_rx" placeholder="145.525" inputmode="decimal"></div>
+                  <div class="field"><label for="f_tx">发射频率 (MHz)</label><input id="f_tx" placeholder="145.525" inputmode="decimal"></div>
+                </div>
+                <p class="hint-inline">填 RX/TX 后自动推导差频与差频频率；只填一个自动补齐。</p>
+                <div class="row2">
+                  <div class="field"><label for="f_dupMode">差频模式（自动）</label>
+                    <select id="f_dupMode" disabled>
+                      <option value="0">关闭</option><option value="1">负差频</option>
+                      <option value="2">正差频</option><option value="3">收发分离</option>
+                    </select>
+                  </div>
+                  <div class="field"><label for="f_dupFreq">差频频率（自动）</label><input id="f_dupFreq" readonly></div>
+                </div>
+              </section>
+
+              <section class="form-section">
+                <div class="section-title">标识</div>
+                <div class="field"><label for="f_name">信道名（≤24 字节）</label><input id="f_name" maxlength="24"></div>
+              </section>
+
+              <section class="form-section">
+                <div class="section-title">亚音</div>
+                <div class="row2">
+                  <div class="field"><label for="f_encType">亚音编码类型</label>
+                    <select id="f_encType"><option value="0">关闭</option><option value="1">模拟</option><option value="2">数字</option></select>
+                  </div>
+                  <div class="field"><label for="f_encIndex">编码值</label><select id="f_encIndex"></select></div>
+                </div>
+                <div class="row2">
+                  <div class="field"><label for="f_decType">亚音解码类型</label>
+                    <select id="f_decType">
+                      <option value="0">关闭</option><option value="1">模拟</option><option value="2">数字</option>
+                      <option value="3">模拟反向</option><option value="4">数字反向</option>
+                    </select>
+                  </div>
+                  <div class="field"><label for="f_decIndex">解码值</label><select id="f_decIndex"></select></div>
+                </div>
+              </section>
+
+              <section class="form-section">
+                <div class="section-title">射频参数</div>
+                <div class="row3">
+                  <div class="field"><label for="f_power">功率</label>
+                    <select id="f_power"><option value="0">低</option><option value="1">中</option><option value="2">高</option></select>
+                  </div>
+                  <div class="field"><label for="f_bw">带宽</label>
+                    <select id="f_bw"><option value="0">宽</option><option value="1">窄</option></select>
+                  </div>
+                  <div class="field"><label for="f_rxOnly">仅接收</label>
+                    <select id="f_rxOnly"><option value="0">否</option><option value="1">是</option></select>
+                  </div>
+                </div>
+                <div class="row2">
+                  <div class="field"><label for="f_scan">扫描标志</label>
+                    <select id="f_scan">
+                      <option value="0">关闭/参与</option><option value="1">跳过</option>
+                      <option value="2">优先</option><option value="3">保留</option>
+                    </select>
+                  </div>
+                  <div class="field"><label for="f_step">步进</label>
+                    <select id="f_step">
+                      <option value="0">2.5k</option><option value="1">3.125k</option><option value="2">5k</option>
+                      <option value="3">6.25k</option><option value="4">8.33k</option><option value="5">10k</option>
+                      <option value="6">12.5k</option><option value="7">15k</option><option value="8">20k</option>
+                      <option value="9">25k</option><option value="10">50k</option><option value="11">100k</option>
+                    </select>
+                  </div>
+                </div>
+              </section>
+
+              <div class="btn-row">
+                <button id="btnChRevert" style="flex:1;">放弃本行编辑</button>
+              </div>
+              </div><!-- /.sheet-body -->
+
+              <div class="btn-row sheet-actions">
+                <button id="btnChApply" class="primary" style="flex:1;">应用到 CH</button>
+                <button id="btnChApplyNext" style="flex:1;">应用并下一条</button>
+              </div>
             </div>
-            <p class="hint">填写 RX/TX 后自动推导差频；只填一个则自动补齐。</p>
+          </aside>
+        </div>
+      </div>
 
-            <div class="form-row cols-2">
-              <div class="field"><label>差频模式</label>
-                <select id="f_dupMode" disabled>
+      <!-- ========== 频率模式 ========== -->
+      <div class="page" id="page-vfo">
+        <div class="page-actions">
+          <button id="btnVfoRead" disabled><svg class="icon"><use href="#i-download"/></svg>读取 VFO A/B</button>
+          <button id="btnVfoWrite" disabled class="danger"><svg class="icon"><use href="#i-upload"/></svg>写入 VFO A/B</button>
+          <span class="hint-inline hint-push">写入会同步 Temp A/B（镜像）</span>
+        </div>
+        <div class="vfo-layout">
+          <div class="vfo-box vfo-a">
+            <header class="vfo-head">
+              <h3>VFO A<span class="vfo-addr">0x13B80</span></h3>
+              <span class="vfo-tag">主接收</span>
+            </header>
+            <div class="row2">
+              <div class="field"><label for="va_rx">接收频率 (MHz)</label><input id="va_rx" placeholder="430.000" inputmode="decimal"></div>
+              <div class="field"><label for="va_tx">发射频率 (MHz)</label><input id="va_tx" placeholder="430.000" inputmode="decimal"></div>
+            </div>
+            <p class="hint-inline">RX/TX 自动推导差频与差频频率</p>
+            <div class="row2">
+              <div class="field"><label for="va_dupMode">差频模式（自动）</label>
+                <select id="va_dupMode" disabled>
                   <option value="0">关闭</option><option value="1">负差频</option>
                   <option value="2">正差频</option><option value="3">收发分离</option>
                 </select>
               </div>
-              <div class="field"><label>差频频率</label><input id="f_dupFreq" readonly></div>
+              <div class="field"><label for="va_dupFreq">差频频率（自动）</label><input id="va_dupFreq" readonly></div>
             </div>
-
-            <div class="field"><label>信道名</label><input id="f_name" maxlength="24" placeholder="≤ 24 字节"></div>
-
-            <div class="form-row cols-2">
-              <div class="field"><label>编码类型</label>
-                <select id="f_encType"><option value="0">关闭</option><option value="1">模拟</option><option value="2">数字</option></select>
+            <div class="row2">
+              <div class="field"><label for="va_encType">亚音编码类型</label>
+                <select id="va_encType"><option value="0">关闭</option><option value="1">模拟</option><option value="2">数字</option></select>
               </div>
-              <div class="field"><label>编码值</label><select id="f_encIndex"></select></div>
+              <div class="field"><label for="va_encIndex">编码值</label><select id="va_encIndex"></select></div>
             </div>
-
-            <div class="form-row cols-2">
-              <div class="field"><label>解码类型</label>
-                <select id="f_decType">
+            <div class="row2">
+              <div class="field"><label for="va_decType">亚音解码类型</label>
+                <select id="va_decType">
                   <option value="0">关闭</option><option value="1">模拟</option><option value="2">数字</option>
                   <option value="3">模拟反向</option><option value="4">数字反向</option>
                 </select>
               </div>
-              <div class="field"><label>解码值</label><select id="f_decIndex"></select></div>
+              <div class="field"><label for="va_decIndex">解码值</label><select id="va_decIndex"></select></div>
             </div>
-
-            <div class="form-row cols-3">
-              <div class="field"><label>功率</label>
-                <select id="f_power"><option value="0">低</option><option value="1">中</option><option value="2">高</option></select>
+            <div class="row3">
+              <div class="field"><label for="va_power">功率</label>
+                <select id="va_power"><option value="0">低</option><option value="1">中</option><option value="2">高</option></select>
               </div>
-              <div class="field"><label>带宽</label>
-                <select id="f_bw"><option value="0">宽</option><option value="1">窄</option></select>
+              <div class="field"><label for="va_bw">带宽</label>
+                <select id="va_bw"><option value="0">宽</option><option value="1">窄</option></select>
               </div>
-              <div class="field"><label>仅收</label>
-                <select id="f_rxOnly"><option value="0">否</option><option value="1">是</option></select>
-              </div>
-            </div>
-
-            <div class="form-row cols-2">
-              <div class="field"><label>扫描</label>
-                <select id="f_scan">
-                  <option value="0">参与</option><option value="1">跳过</option>
-                  <option value="2">优先</option><option value="3">保留</option>
-                </select>
-              </div>
-              <div class="field"><label>步进</label>
-                <select id="f_step">
+              <div class="field"><label for="va_step">步进</label>
+                <select id="va_step">
                   <option value="0">2.5k</option><option value="1">3.125k</option><option value="2">5k</option>
                   <option value="3">6.25k</option><option value="4">8.33k</option><option value="5">10k</option>
                   <option value="6">12.5k</option><option value="7">15k</option><option value="8">20k</option>
@@ -166,313 +329,251 @@
                 </select>
               </div>
             </div>
+            <div class="btn-row">
+              <button id="btnVfoAClear" class="danger" style="flex:1;">清空 VFO A</button>
+            </div>
+          </div>
 
-            <div class="form-actions">
-              <button id="btnChApply" class="btn btn-accent flex-1">应用</button>
-              <button id="btnChApplyNext" class="btn flex-1">应用并下一条</button>
+          <div class="vfo-box vfo-b">
+            <header class="vfo-head">
+              <h3>VFO B<span class="vfo-addr">0x13BB0</span></h3>
+              <span class="vfo-tag">副接收</span>
+            </header>
+            <div class="row2">
+              <div class="field"><label for="vb_rx">接收频率 (MHz)</label><input id="vb_rx" placeholder="430.000" inputmode="decimal"></div>
+              <div class="field"><label for="vb_tx">发射频率 (MHz)</label><input id="vb_tx" placeholder="430.000" inputmode="decimal"></div>
             </div>
-          </div>
-        </aside>
-
-      </div>
-    </section>
-
-    <!-- ================= VFO ================= -->
-    <section class="page" id="page-vfo">
-      <div class="page-head">
-        <div>
-          <h2>频率模式</h2>
-          <p>VFO A / B 及临时中继快捷区</p>
-        </div>
-        <div class="page-actions">
-          <button id="btnVfoRead" class="btn" disabled>读取 VFO</button>
-          <button id="btnVfoWrite" class="btn btn-danger" disabled>写入 VFO</button>
-        </div>
-      </div>
-
-      <div class="vfo-grid">
-
-        <div class="card">
-          <div class="card-head">
-            <span class="badge badge-a">A</span>
-            <span class="card-addr">0x13B80</span>
-          </div>
-          <div class="form-row cols-2">
-            <div class="field"><label>接收频率 (MHz)</label><input id="va_rx" inputmode="decimal" placeholder="430.000"></div>
-            <div class="field"><label>发射频率 (MHz)</label><input id="va_tx" inputmode="decimal" placeholder="430.000"></div>
-          </div>
-          <p class="hint">RX/TX 自动推导差频</p>
-          <div class="form-row cols-2">
-            <div class="field"><label>差频模式</label>
-              <select id="va_dupMode" disabled>
-                <option value="0">关闭</option><option value="1">负差频</option>
-                <option value="2">正差频</option><option value="3">收发分离</option>
-              </select>
+            <p class="hint-inline">RX/TX 自动推导差频与差频频率</p>
+            <div class="row2">
+              <div class="field"><label for="vb_dupMode">差频模式（自动）</label>
+                <select id="vb_dupMode" disabled>
+                  <option value="0">关闭</option><option value="1">负差频</option>
+                  <option value="2">正差频</option><option value="3">收发分离</option>
+                </select>
+              </div>
+              <div class="field"><label for="vb_dupFreq">差频频率（自动）</label><input id="vb_dupFreq" readonly></div>
             </div>
-            <div class="field"><label>差频频率</label><input id="va_dupFreq" readonly></div>
-          </div>
-          <div class="form-row cols-2">
-            <div class="field"><label>编码类型</label>
-              <select id="va_encType"><option value="0">关闭</option><option value="1">模拟</option><option value="2">数字</option></select>
+            <div class="row2">
+              <div class="field"><label for="vb_encType">亚音编码类型</label>
+                <select id="vb_encType"><option value="0">关闭</option><option value="1">模拟</option><option value="2">数字</option></select>
+              </div>
+              <div class="field"><label for="vb_encIndex">编码值</label><select id="vb_encIndex"></select></div>
             </div>
-            <div class="field"><label>编码值</label><select id="va_encIndex"></select></div>
-          </div>
-          <div class="form-row cols-2">
-            <div class="field"><label>解码类型</label>
-              <select id="va_decType">
-                <option value="0">关闭</option><option value="1">模拟</option><option value="2">数字</option>
-                <option value="3">模拟反向</option><option value="4">数字反向</option>
-              </select>
+            <div class="row2">
+              <div class="field"><label for="vb_decType">亚音解码类型</label>
+                <select id="vb_decType">
+                  <option value="0">关闭</option><option value="1">模拟</option><option value="2">数字</option>
+                  <option value="3">模拟反向</option><option value="4">数字反向</option>
+                </select>
+              </div>
+              <div class="field"><label for="vb_decIndex">解码值</label><select id="vb_decIndex"></select></div>
             </div>
-            <div class="field"><label>解码值</label><select id="va_decIndex"></select></div>
-          </div>
-          <div class="form-row cols-3">
-            <div class="field"><label>功率</label>
-              <select id="va_power"><option value="0">低</option><option value="1">中</option><option value="2">高</option></select>
+            <div class="row3">
+              <div class="field"><label for="vb_power">功率</label>
+                <select id="vb_power"><option value="0">低</option><option value="1">中</option><option value="2">高</option></select>
+              </div>
+              <div class="field"><label for="vb_bw">带宽</label>
+                <select id="vb_bw"><option value="0">宽</option><option value="1">窄</option></select>
+              </div>
+              <div class="field"><label for="vb_step">步进</label>
+                <select id="vb_step">
+                  <option value="0">2.5k</option><option value="1">3.125k</option><option value="2">5k</option>
+                  <option value="3">6.25k</option><option value="4">8.33k</option><option value="5">10k</option>
+                  <option value="6">12.5k</option><option value="7">15k</option><option value="8">20k</option>
+                  <option value="9">25k</option><option value="10">50k</option><option value="11">100k</option>
+                </select>
+              </div>
             </div>
-            <div class="field"><label>带宽</label>
-              <select id="va_bw"><option value="0">宽</option><option value="1">窄</option></select>
+            <div class="btn-row">
+              <button id="btnVfoBClear" class="danger" style="flex:1;">清空 VFO B</button>
             </div>
-            <div class="field"><label>步进</label>
-              <select id="va_step">
-                <option value="0">2.5k</option><option value="1">3.125k</option><option value="2">5k</option>
-                <option value="3">6.25k</option><option value="4">8.33k</option><option value="5">10k</option>
-                <option value="6">12.5k</option><option value="7">15k</option><option value="8">20k</option>
-                <option value="9">25k</option><option value="10">50k</option><option value="11">100k</option>
-              </select>
-            </div>
-          </div>
-          <div class="form-actions">
-            <button id="btnVfoAClear" class="btn btn-ghost btn-ghost-danger flex-1">清空 VFO A</button>
           </div>
         </div>
 
-        <div class="card">
-          <div class="card-head">
-            <span class="badge badge-b">B</span>
-            <span class="card-addr">0x13BB0</span>
-          </div>
-          <div class="form-row cols-2">
-            <div class="field"><label>接收频率 (MHz)</label><input id="vb_rx" inputmode="decimal" placeholder="430.000"></div>
-            <div class="field"><label>发射频率 (MHz)</label><input id="vb_tx" inputmode="decimal" placeholder="430.000"></div>
-          </div>
-          <p class="hint">RX/TX 自动推导差频</p>
-          <div class="form-row cols-2">
-            <div class="field"><label>差频模式</label>
-              <select id="vb_dupMode" disabled>
-                <option value="0">关闭</option><option value="1">负差频</option>
-                <option value="2">正差频</option><option value="3">收发分离</option>
-              </select>
-            </div>
-            <div class="field"><label>差频频率</label><input id="vb_dupFreq" readonly></div>
-          </div>
-          <div class="form-row cols-2">
-            <div class="field"><label>编码类型</label>
-              <select id="vb_encType"><option value="0">关闭</option><option value="1">模拟</option><option value="2">数字</option></select>
-            </div>
-            <div class="field"><label>编码值</label><select id="vb_encIndex"></select></div>
-          </div>
-          <div class="form-row cols-2">
-            <div class="field"><label>解码类型</label>
-              <select id="vb_decType">
-                <option value="0">关闭</option><option value="1">模拟</option><option value="2">数字</option>
-                <option value="3">模拟反向</option><option value="4">数字反向</option>
-              </select>
-            </div>
-            <div class="field"><label>解码值</label><select id="vb_decIndex"></select></div>
-          </div>
-          <div class="form-row cols-3">
-            <div class="field"><label>功率</label>
-              <select id="vb_power"><option value="0">低</option><option value="1">中</option><option value="2">高</option></select>
-            </div>
-            <div class="field"><label>带宽</label>
-              <select id="vb_bw"><option value="0">宽</option><option value="1">窄</option></select>
-            </div>
-            <div class="field"><label>步进</label>
-              <select id="vb_step">
-                <option value="0">2.5k</option><option value="1">3.125k</option><option value="2">5k</option>
-                <option value="3">6.25k</option><option value="4">8.33k</option><option value="5">10k</option>
-                <option value="6">12.5k</option><option value="7">15k</option><option value="8">20k</option>
-                <option value="9">25k</option><option value="10">50k</option><option value="11">100k</option>
-              </select>
+        <div class="rpt-box">
+          <header class="vfo-head">
+            <h3>临时中继快捷区</h3>
+            <span class="vfo-tag vfo-tag-blue">Repeater</span>
+          </header>
+          <div class="row3">
+            <div class="field"><label for="rpt_rx">下行频率 (MHz)</label><input id="rpt_rx" placeholder="145.000" inputmode="decimal"></div>
+            <div class="field"><label for="rpt_tx">上行频率 (MHz)</label><input id="rpt_tx" placeholder="145.600" inputmode="decimal"></div>
+            <div class="field"><label for="rpt_toneType">亚音类型</label>
+              <select id="rpt_toneType"><option value="0">关闭</option><option value="1">模拟 CTCSS</option><option value="2">数字 DTCS</option></select>
             </div>
           </div>
-          <div class="form-actions">
-            <button id="btnVfoBClear" class="btn btn-ghost btn-ghost-danger flex-1">清空 VFO B</button>
+          <div class="row2">
+            <div class="field"><label for="rpt_toneValue">亚音值</label><select id="rpt_toneValue"></select></div>
+            <div class="field"><label for="rpt_target">目标 VFO</label>
+              <select id="rpt_target"><option value="A">VFO A</option><option value="B">VFO B</option></select>
+            </div>
           </div>
-        </div>
-
-      </div>
-
-      <div class="card rpt-card">
-        <div class="card-head">
-          <span class="card-title">临时中继快捷区</span>
-        </div>
-        <div class="form-row cols-3">
-          <div class="field"><label>下行频率 (MHz)</label><input id="rpt_rx" inputmode="decimal" placeholder="145.000"></div>
-          <div class="field"><label>上行频率 (MHz)</label><input id="rpt_tx" inputmode="decimal" placeholder="145.600"></div>
-          <div class="field"><label>亚音类型</label>
-            <select id="rpt_toneType">
-              <option value="0">关闭</option><option value="1">模拟 CTCSS</option><option value="2">数字 DTCS</option>
-            </select>
+          <div class="btn-row">
+            <button id="btnRptApply" class="primary" style="flex:1;">填入目标 VFO 编辑区</button>
+            <button id="btnRptSaveMem" class="blue" style="flex:1;">保存到本地记忆</button>
+            <button id="btnRptClear" style="flex:1;">清除快捷区</button>
           </div>
-        </div>
-        <div class="form-row cols-2">
-          <div class="field"><label>亚音值</label><select id="rpt_toneValue"></select></div>
-          <div class="field"><label>目标 VFO</label>
-            <select id="rpt_target"><option value="A">VFO A</option><option value="B">VFO B</option></select>
-          </div>
-        </div>
-        <div class="form-actions">
-          <button id="btnRptApply" class="btn btn-accent flex-1">填入目标 VFO</button>
-          <button id="btnRptSaveMem" class="btn flex-1">保存记忆</button>
-          <button id="btnRptClear" class="btn btn-ghost flex-1">清除</button>
-        </div>
-
-        <div class="mem-block">
-          <div class="mem-head">
-            <span>本地记忆</span>
-            <button id="btnRptClearMem" class="btn btn-ghost btn-sm">清空记忆</button>
-          </div>
-          <div class="mem-list" id="rptMemList">
-            <div class="mem-empty">暂无记忆</div>
+          <div class="rpt-mem">
+            <div class="rpt-mem-head">
+              <strong>本地记忆（点击填入）</strong>
+              <button id="btnRptClearMem" class="btn-ghost-danger">清空全部记忆</button>
+            </div>
+            <div class="rpt-mem-list" id="rptMemList"></div>
           </div>
         </div>
       </div>
-    </section>
 
-    <!-- ================= 设备 ================= -->
-    <section class="page" id="page-dev">
-      <div class="card dev-card">
-        <div class="card-head">
-          <span class="card-title">设备信息</span>
-          <button id="btnDevRefresh" class="btn btn-sm" disabled>重新读取</button>
-        </div>
-        <div class="dev-info-body" id="devInfoBody">连接后自动获取，或点击“重新读取”</div>
-      </div>
-
-      <div class="card">
-        <div class="card-head"><span class="card-title">密码校验</span></div>
-        <div class="form-row cols-2">
-          <div class="field"><label>密码类型</label>
-            <select id="pwdType"><option value="0">读频密码</option><option value="1">写频密码</option></select>
-          </div>
-          <div class="field"><label>密码（≤ 8 字节）</label><input id="pwdValue" maxlength="8" placeholder="12345678"></div>
-        </div>
-        <div class="form-actions">
-          <button id="btnPwdCheck" class="btn" disabled>校验</button>
-        </div>
-        <div id="pwdResult" class="pwd-result"></div>
-      </div>
-    </section>
-
-    <!-- ================= 日志 ================= -->
-    <section class="page" id="page-log">
-      <div class="toolbar">
-        <button id="btnLogClear" class="btn btn-ghost">清空日志</button>
-        <button id="btnLogScrollToggle" class="btn btn-ghost">自动滚动：开</button>
-      </div>
-      <div class="log-box" id="logBox"></div>
-    </section>
-
-    <!-- ================= 设置 ================= -->
-    <section class="page" id="page-set">
-      <div class="card">
-        <div class="settings-list">
-
-          <div class="setting-row">
-            <div class="setting-label">帧日志</div>
-            <label class="checkbox"><input type="checkbox" id="setVerbose" checked> 记录每条 TX / RX 完整帧</label>
-          </div>
-
-          <div class="setting-row">
-            <div class="setting-label">失败重试</div>
-            <input id="setRetry" type="number" min="0" max="3" value="1">
-          </div>
-
-          <div class="setting-row">
-            <div class="setting-label">读写块大小</div>
-            <input id="setBlockSize" type="number" min="16" max="128" value="64">
-          </div>
-
-          <div class="setting-row">
-            <div class="setting-label">保持会话</div>
-            <label class="checkbox"><input type="checkbox" id="setKeepSession"> 读取后不重启设备（需固件支持）</label>
-          </div>
-
-          <div class="setting-row">
-            <div class="setting-label">BLE Service</div>
-            <input id="setBleService" value="00000001-ba2a-46c9-ae49-01b0961f68bb">
-          </div>
-
-          <div class="setting-row">
-            <div class="setting-label">BLE Write</div>
-            <input id="setBleWrite" value="00000002-ba2a-46c9-ae49-01b0961f68bb">
-          </div>
-
-          <div class="setting-row">
-            <div class="setting-label">BLE Notify</div>
-            <input id="setBleNotify" value="00000003-ba2a-46c9-ae49-01b0961f68bb">
-          </div>
-
-        </div>
-        <div class="form-actions">
-          <button id="btnSaveLocal" class="btn btn-accent">保存到浏览器</button>
-          <button id="btnLoadLocal" class="btn">从浏览器加载</button>
-          <button id="btnExportJson" class="btn">导出 JSON</button>
-          <button id="btnImportJson" class="btn">导入 JSON</button>
+      <!-- ========== 设备信息 ========== -->
+      <div class="page" id="page-dev">
+        <div class="dev-grid">
+          <section class="card">
+            <header class="card-head">
+              <h3>设备信息</h3>
+              <button id="btnDevRefresh" disabled class="btn-ghost"><svg class="icon"><use href="#i-refresh"/></svg>重新读取</button>
+            </header>
+            <div id="devInfoBody">连接后点击读取设备信息或握手时自动获取</div>
+          </section>
+          <section class="card">
+            <header class="card-head">
+              <h3>密码校验</h3>
+            </header>
+            <div class="field"><label for="pwdType">密码类型</label>
+              <select id="pwdType"><option value="0">读频密码</option><option value="1">写频密码</option></select>
+            </div>
+            <div class="field"><label for="pwdValue">密码（最多 8 字节 ASCII）</label>
+              <input id="pwdValue" maxlength="8" placeholder="例如 12345678">
+            </div>
+            <div class="btn-row"><button id="btnPwdCheck" disabled class="blue" style="flex:1;">校验密码</button></div>
+            <div id="pwdResult" class="pwd-result"></div>
+          </section>
         </div>
       </div>
-    </section>
 
-  </main>
-</div>
+      <!-- ========== 通信日志 ========== -->
+      <div class="page" id="page-log">
+        <div class="log-toolbar">
+          <button id="btnLogClear">清空日志</button>
+          <button id="btnLogScrollToggle" class="blue">自动滚动：开</button>
+        </div>
+        <div class="log-box" id="logBox"></div>
+      </div>
 
-<!-- 确认弹窗 -->
-<div class="modal" id="modalConfirm">
-  <div class="modal-box">
-    <h3 id="mConfirmTitle">确认</h3>
-    <div id="mConfirmBody" class="modal-body"></div>
-    <div class="modal-actions">
-      <button id="mConfirmCancel" class="btn">取消</button>
-      <button id="mConfirmOk" class="btn btn-accent">确认</button>
+      <!-- ========== 设置 ========== -->
+      <div class="page" id="page-set">
+        <div class="set-grid">
+          <section class="card">
+            <header class="card-head"><h3>通信与协议</h3></header>
+            <div class="set-row">
+              <div class="set-label"><label for="setVerbose">帧日志（完整十六进制）</label></div>
+              <div class="set-control">
+                <span class="small-check"><input type="checkbox" id="setVerbose" checked><span>记录每条 TX/RX 完整帧</span></span>
+              </div>
+            </div>
+            <div class="set-row">
+              <div class="set-label"><label for="setRetry">命令失败重试次数</label></div>
+              <div class="set-control"><input id="setRetry" type="number" min="0" max="3" value="1"></div>
+            </div>
+            <div class="set-row">
+              <div class="set-label"><label for="setBlockSize">读写块大小（字节）</label></div>
+              <div class="set-control"><input id="setBlockSize" type="number" min="16" max="128" value="64"></div>
+            </div>
+            <div class="set-row">
+              <div class="set-label"><label for="setKeepSession">读取后保持会话</label></div>
+              <div class="set-control">
+                <span class="small-check"><input type="checkbox" id="setKeepSession"><span>读取后不发 0xE5，让设备保持在线（不重启；需测试设备是否兼容）</span></span>
+              </div>
+            </div>
+            <div class="set-row set-row-note">
+              <div class="set-label">跨段判定</div>
+              <div class="set-control"><p class="hint-inline">按 VHF（136–174 MHz）与 UHF（400–520 MHz）区分，跨段自动判“收发分离”。</p></div>
+            </div>
+          </section>
+
+          <section class="card">
+            <header class="card-head"><h3>BLE 配置</h3></header>
+            <div class="set-row">
+              <div class="set-label"><label for="setBleService">Service UUID</label></div>
+              <div class="set-control"><input id="setBleService" value="00000001-ba2a-46c9-ae49-01b0961f68bb" class="mono-input"></div>
+            </div>
+            <div class="set-row">
+              <div class="set-label"><label for="setBleWrite">写特征 UUID</label></div>
+              <div class="set-control"><input id="setBleWrite" value="00000002-ba2a-46c9-ae49-01b0961f68bb" class="mono-input"></div>
+            </div>
+            <div class="set-row">
+              <div class="set-label"><label for="setBleNotify">通知特征 UUID</label></div>
+              <div class="set-control"><input id="setBleNotify" value="00000003-ba2a-46c9-ae49-01b0961f68bb" class="mono-input"></div>
+            </div>
+            <div class="set-row set-row-note">
+              <div class="set-label">连接策略</div>
+              <div class="set-control"><p class="hint-inline">连接时会先按上面 3 个 UUID 精确匹配；若失败，再尝试“同后缀”Service 和“任意含 write+notify 特征对”的 Service，并把实际使用的 UUID 自动写回上面三个输入框。</p></div>
+            </div>
+          </section>
+
+          <section class="card">
+            <header class="card-head"><h3>本地配置</h3></header>
+            <p class="hint-inline card-note">配置可保存到浏览器 localStorage，也可导出 / 导入 JSON 文件进行备份或迁移。</p>
+            <div class="btn-row btn-row-wrap">
+              <button id="btnSaveLocal" class="primary">保存到浏览器</button>
+              <button id="btnLoadLocal" class="blue">从浏览器加载</button>
+              <button id="btnExportJson">导出 JSON</button>
+              <button id="btnImportJson">导入 JSON</button>
+            </div>
+          </section>
+        </div>
+      </div>
+
     </div>
   </div>
 </div>
 
-<!-- 批量修改弹窗 -->
-<div class="modal" id="modalBatch">
+<div class="scrim" id="scrim"></div>
+<div class="scrim" id="editScrim" aria-hidden="true"></div>
+
+<!-- ============ 弹窗：确认 ============ -->
+<div class="modal" id="modalConfirm" role="dialog" aria-modal="true" aria-labelledby="mConfirmTitle">
   <div class="modal-box">
-    <h3>批量修改</h3>
-    <div class="form-row cols-3">
-      <div class="field"><label>功率</label>
+    <h3 id="mConfirmTitle">确认</h3>
+    <div id="mConfirmBody"></div>
+    <div class="modal-actions">
+      <button id="mConfirmCancel">取消</button>
+      <button id="mConfirmOk" class="primary">确认</button>
+    </div>
+  </div>
+</div>
+
+<!-- ============ 弹窗：批量修改 ============ -->
+<div class="modal" id="modalBatch" role="dialog" aria-modal="true" aria-labelledby="mBatchTitle">
+  <div class="modal-box">
+    <h3 id="mBatchTitle">批量修改选中信道</h3>
+    <div class="row3">
+      <div class="field"><label for="b_power">功率</label>
         <select id="b_power"><option value="">不修改</option><option value="0">低</option><option value="1">中</option><option value="2">高</option></select>
       </div>
-      <div class="field"><label>带宽</label>
+      <div class="field"><label for="b_bw">带宽</label>
         <select id="b_bw"><option value="">不修改</option><option value="0">宽</option><option value="1">窄</option></select>
       </div>
-      <div class="field"><label>仅收</label>
+      <div class="field"><label for="b_rxOnly">仅接收</label>
         <select id="b_rxOnly"><option value="">不修改</option><option value="0">否</option><option value="1">是</option></select>
       </div>
     </div>
-    <div class="form-row cols-2">
-      <div class="field"><label>编码类型</label>
+    <div class="row2">
+      <div class="field"><label for="b_encType">亚音编码类型</label>
         <select id="b_encType"><option value="">不修改</option><option value="0">关闭</option><option value="1">模拟</option><option value="2">数字</option></select>
       </div>
-      <div class="field"><label>编码值</label><select id="b_encIndex"><option value="">不修改</option></select></div>
+      <div class="field"><label for="b_encIndex">编码值</label><select id="b_encIndex"><option value="">不修改</option></select></div>
     </div>
-    <div class="form-row cols-2">
-      <div class="field"><label>解码类型</label>
+    <div class="row2">
+      <div class="field"><label for="b_decType">亚音解码类型</label>
         <select id="b_decType"><option value="">不修改</option><option value="0">关闭</option><option value="1">模拟</option><option value="2">数字</option><option value="3">模拟反向</option><option value="4">数字反向</option></select>
       </div>
-      <div class="field"><label>解码值</label><select id="b_decIndex"><option value="">不修改</option></select></div>
+      <div class="field"><label for="b_decIndex">解码值</label><select id="b_decIndex"><option value="">不修改</option></select></div>
     </div>
-    <div class="field"><label>扫描</label>
-      <select id="b_scan"><option value="">不修改</option><option value="0">参与</option><option value="1">跳过</option><option value="2">优先</option><option value="3">保留</option></select>
+    <div class="field"><label for="b_scan">扫描标志</label>
+      <select id="b_scan"><option value="">不修改</option><option value="0">关闭/参与</option><option value="1">跳过</option><option value="2">优先</option><option value="3">保留</option></select>
     </div>
     <div class="modal-actions">
-      <button id="mBatchCancel" class="btn">取消</button>
-      <button id="mBatchOk" class="btn btn-accent">应用</button>
+      <button id="mBatchCancel">取消</button>
+      <button id="mBatchOk" class="primary">应用</button>
     </div>
   </div>
 </div>
@@ -488,5 +589,150 @@
 <script src="js/ui-device.js"></script>
 <script src="js/ui-settings.js"></script>
 <script src="js/main.js"></script>
+<script>
+/* ============ 纯展示层增强（不触碰任何业务逻辑） ============ */
+(function () {
+  /* --- 深浅色主题切换 --- */
+  var root = document.documentElement;
+  var themeBtn = document.getElementById("themeToggle");
+  function syncThemeBtn() {
+    if (!themeBtn) return;
+    var dark = root.getAttribute("data-theme") !== "light";
+    var label = themeBtn.querySelector(".theme-label");
+    if (label) label.textContent = dark ? "浅色模式" : "深色模式";
+    themeBtn.setAttribute("aria-label", dark ? "切换到浅色模式" : "切换到深色模式");
+  }
+  if (themeBtn) themeBtn.addEventListener("click", function () {
+    var next = root.getAttribute("data-theme") === "light" ? "dark" : "light";
+    root.setAttribute("data-theme", next);
+    try { localStorage.setItem("uvl-theme", next); } catch (e) {}
+    syncThemeBtn();
+  });
+  syncThemeBtn();
+
+  /* --- 移动端侧边栏抽屉 --- */
+  var sidebar = document.getElementById("sidebar");
+  var navToggle = document.getElementById("navToggle");
+  var scrim = document.getElementById("scrim");
+  function closeNav() {
+    if (sidebar) sidebar.classList.remove("open");
+    if (scrim) scrim.classList.remove("on");
+  }
+
+  /* --- 移动端：信道编辑面板 → 底部抽屉，点卡片即编辑，无需翻到页底 --- */
+  var editForm = document.getElementById("chEditForm");
+  var editScrim = document.getElementById("editScrim");
+  var sheetCloseBtn = document.getElementById("btnSheetClose");
+  var mqMobile = window.matchMedia ? window.matchMedia("(max-width: 900px)") : null;
+  function isMobileLayout() { return mqMobile ? mqMobile.matches : false; }
+
+  function openSheet() {
+    /* 手机端抽屉常驻 DOM（离屏 + visibility:hidden），类名切换即触发滑入滑出过渡 */
+    editForm.style.display = "";              /* 显示方式交还 CSS：.sheet-open 决定布局 */
+    editForm.classList.add("sheet-open");
+    document.body.classList.add("sheet-open");
+    if (isMobileLayout()) {
+      if (editScrim) editScrim.classList.add("on");
+      if (sidebar) sidebar.classList.remove("open");
+      if (scrim) scrim.classList.remove("on");
+      var row = document.querySelector("#chTbody tr.active");
+      if (row && row.scrollIntoView) row.scrollIntoView({ block: "nearest" });
+    }
+  }
+
+  function closeSheet() {
+    if (!editForm) return;
+    editForm.classList.remove("sheet-open");
+    document.body.classList.remove("sheet-open");
+    if (editScrim) editScrim.classList.remove("on");
+  }
+
+  /* JS 以 inline display 控制表单显隐，这里镜像为抽屉开合状态 */
+  if (editForm && window.MutationObserver) {
+    new MutationObserver(function () {
+      if (editForm.style.display !== "none") openSheet();
+      else {
+        editForm.classList.remove("sheet-open");
+        document.body.classList.remove("sheet-open");
+        if (editScrim) editScrim.classList.remove("on");
+      }
+    }).observe(editForm, { attributes: true, attributeFilter: ["style"] });
+    /* 兼容“加载时已被 JS 打开”的边缘情况（inline display 已设为可见值） */
+    if (editForm.style.display && editForm.style.display !== "none") openSheet();
+  }
+  if (sheetCloseBtn) sheetCloseBtn.addEventListener("click", closeSheet);
+  if (editScrim) editScrim.addEventListener("click", closeSheet);
+  /* 聚焦输入框时滚到可视区，避免被软键盘遮挡 */
+  if (editForm) editForm.addEventListener("focusin", function (e) {
+    if (!isMobileLayout() || !e.target || e.target === editForm) return;
+    var t = e.target;
+    setTimeout(function () {
+      if (t.scrollIntoView) t.scrollIntoView({ block: "center", behavior: "smooth" });
+    }, 150);
+  });
+
+  if (navToggle) navToggle.addEventListener("click", function () {
+    /* 编辑抽屉展开时，先收起它，避免抽屉层级穿插 */
+    if (isMobileLayout() && editForm && editForm.classList.contains("sheet-open")) { closeSheet(); return; }
+    sidebar.classList.toggle("open");
+    scrim.classList.toggle("on");
+  });
+  if (scrim) scrim.addEventListener("click", closeNav);
+  document.addEventListener("keydown", function (e) {
+    if (e.key !== "Escape") return;
+    if (isMobileLayout() && editForm && editForm.classList.contains("sheet-open")) { closeSheet(); return; }
+    closeNav();
+  });
+  document.querySelectorAll(".tab").forEach(function (tab) {
+    tab.addEventListener("click", function () {
+      closeNav();
+      if (isMobileLayout()) closeSheet();
+    });
+  });
+
+  /* --- 侧边栏连接状态镜像顶栏 #status --- */
+  var statusEl = document.getElementById("status");
+  var connState = document.getElementById("connState");
+  var connDot = document.getElementById("connDot");
+  function syncConn() {
+    if (!statusEl || !connState) return;
+    connState.textContent = statusEl.textContent || "未连接";
+    if (connDot) {
+      connDot.className = "conn-dot" +
+        (statusEl.className.indexOf("ok") > -1 ? " ok" : "") +
+        (statusEl.className.indexOf("err") > -1 ? " err" : "") +
+        (statusEl.className.indexOf("busy") > -1 ? " busy" : "");
+    }
+  }
+  if (statusEl && window.MutationObserver) {
+    new MutationObserver(syncConn).observe(statusEl, {
+      childList: true, characterData: true, subtree: true, attributes: true, attributeFilter: ["class"]
+    });
+  }
+  syncConn();
+
+  /* --- 顶栏标题随导航同步 --- */
+  var TITLES = {
+    ch:  ["信道读写", "读取、编辑并写入对讲机信道参数"],
+    vfo: ["频率模式", "VFO A / B 频率参数与临时中继快捷区"],
+    dev: ["设备信息", "机型、版本、序列号与密码校验"],
+    log: ["通信日志", "串口 / 蓝牙通信帧实时记录"],
+    set: ["设置", "通信参数、BLE UUID 与本地配置"]
+  };
+  var titleEl = document.getElementById("pageTitle");
+  var descEl = document.getElementById("pageDesc");
+  function syncTitle(tab) {
+    var t = TITLES[tab.dataset.tab];
+    if (!t) return;
+    if (titleEl) titleEl.textContent = t[0];
+    if (descEl) descEl.textContent = t[1];
+  }
+  document.querySelectorAll(".tab").forEach(function (tab) {
+    tab.addEventListener("click", function () { syncTitle(tab); });
+  });
+  var initial = document.querySelector(".tab.active");
+  if (initial) syncTitle(initial);
+})();
+</script>
 </body>
 </html>
