@@ -271,12 +271,13 @@ table.ch-table tbody tr.changed .td-name::after { content: " ●"; }
 @media (max-width: 800px) {
   body { font-size: 13.5px; }
 
+  /* 信道页：单栏堆叠 */
   .ch-layout { grid-template-columns: 1fr; height: auto; }
 
-  /* 隐藏传统表头 */
+  /* 隐藏表头 */
   table.ch-table thead { display: none; }
 
-  /* 表格和行块级化 */
+  /* 表格与行块级化 */
   table.ch-table,
   table.ch-table tbody,
   table.ch-table tr,
@@ -286,104 +287,155 @@ table.ch-table tbody tr.changed .td-name::after { content: " ●"; }
   }
   table.ch-table { min-width: 0; table-layout: auto; }
 
-  /* 每一行变成一张卡片 */
+  /* 每一行 → 一张卡片 */
   table.ch-table tbody tr {
+    position: relative;
     background: var(--surface-1);
     border: 1px solid var(--border);
-    border-radius: 8px;
-    margin-bottom: 8px;
-    padding: 10px 12px;
-    position: relative;
+    border-radius: 10px;
+    margin-bottom: 10px;
+    padding: 12px 14px;
   }
   table.ch-table tbody tr:hover { background: var(--surface-2); }
-  table.ch-table tbody tr.active { border-color: var(--accent); background: #0a2e1a; }
+  table.ch-table tbody tr.active {
+    border-color: var(--accent);
+    background: #0a2e1a;
+  }
+  table.ch-table tbody tr.invalid { opacity: .5; }
+  table.ch-table tbody tr.invalid.active { opacity: .85; }
 
-  /* 默认隐藏所有单元格的原始布局 */
+  /* 复选框：卡片右上角 */
+  table.ch-table tbody td:nth-child(1) {
+    position: absolute;
+    top: 12px;
+    right: 14px;
+    width: auto;
+    padding: 0;
+    z-index: 2;
+  }
+  table.ch-table tbody td:nth-child(1)::before { display: none; }
+  table.ch-table tbody td:nth-child(1) input {
+    width: 18px;
+    height: 18px;
+    cursor: pointer;
+  }
+
+  /* 所有单元格：标签 + 值 紧凑排列（不再两端对齐） */
   table.ch-table tbody td {
-    border: none;
+    display: flex;
+    align-items: baseline;
+    justify-content: flex-start;   /* 关键：取消 space-between */
+    gap: 10px;
     padding: 3px 0;
+    border: none;
     white-space: normal;
     overflow: visible;
     text-overflow: clip;
-    display: flex;
-    justify-content: space-between;
-    align-items: baseline;
-    gap: 12px;
     font-size: 13px;
+    line-height: 1.45;
   }
 
-  /* 用 data-label 显示字段名（需 HTML 配合，或在此处用 ::before 兜底） */
+  /* 标签固定宽度，左对齐，值紧跟其后 */
   table.ch-table tbody td::before {
-    content: attr(data-label);
+    flex: 0 0 48px;
     color: var(--text-muted);
     font-size: 12px;
     font-weight: 500;
-    flex: 0 0 auto;
-    min-width: 46px;
+    text-align: left;
+    white-space: nowrap;
+    content: "";
   }
 
-  /* 优先级 1：CH、名称、接收、发射、差频 —— 始终可见，强调 */
-  table.ch-table tbody td:nth-child(2)::before { content: "CH"; }
-  table.ch-table tbody td:nth-child(3)::before { content: "名称"; }
-  table.ch-table tbody td:nth-child(4)::before { content: "接收"; }
-  table.ch-table tbody td:nth-child(5)::before { content: "发射"; }
-  table.ch-table tbody td:nth-child(6)::before { content: "差频"; }
-
-  /* 名称加粗作为卡片标题 */
-  table.ch-table tbody td:nth-child(3) {
-    font-size: 14.5px;
-    font-weight: 600;
-    padding-bottom: 5px;
-    border-bottom: 1px solid var(--border-subtle);
-    margin-bottom: 5px;
-  }
-
-  /* 优先级 2：编码、解码、功率、带宽、扫描、状态 —— 折叠到卡片底部，
-     用更小的字号和更弱的颜色呈现，不占用主视觉空间 */
-  table.ch-table tbody td:nth-child(7),
-  table.ch-table tbody td:nth-child(8),
-  table.ch-table tbody td:nth-child(9),
-  table.ch-table tbody td:nth-child(10),
-  table.ch-table tbody td:nth-child(11),
-  table.ch-table tbody td:nth-child(12) {
-    font-size: 12px;
-    color: var(--text-faint);
-    padding: 2px 0;
-  }
-  table.ch-table tbody td:nth-child(7)::before { content: "编码"; }
-  table.ch-table tbody td:nth-child(8)::before { content: "解码"; }
-  table.ch-table tbody td:nth-child(9)::before { content: "功率"; }
+  /* 各列标签文案 */
+  table.ch-table tbody td:nth-child(2)::before  { content: "信道"; }
+  table.ch-table tbody td:nth-child(3)::before  { content: "名称"; }
+  table.ch-table tbody td:nth-child(4)::before  { content: "接收"; }
+  table.ch-table tbody td:nth-child(5)::before  { content: "发射"; }
+  table.ch-table tbody td:nth-child(6)::before  { content: "差频"; }
+  table.ch-table tbody td:nth-child(7)::before  { content: "编码"; }
+  table.ch-table tbody td:nth-child(8)::before  { content: "解码"; }
+  table.ch-table tbody td:nth-child(9)::before  { content: "功率"; }
   table.ch-table tbody td:nth-child(10)::before { content: "带宽"; }
   table.ch-table tbody td:nth-child(11)::before { content: "扫描"; }
   table.ch-table tbody td:nth-child(12)::before { content: "状态"; }
 
-  /* 复选框单元格固定在卡片右上角 */
-  table.ch-table tbody td:nth-child(1) {
-    position: absolute;
-    top: 10px; right: 10px;
-    padding: 0;
-    width: auto;
+  /* 信道号：右侧留出复选框安全区 */
+  table.ch-table tbody td:nth-child(2) {
+    padding-right: 34px;
+    font-family: Consolas, monospace;
+    font-weight: 600;
+    color: var(--text-muted);
   }
-  table.ch-table tbody td:nth-child(1)::before { display: none; }
-  table.ch-table tbody td:nth-child(1) input { width: 16px; height: 16px; }
 
-  /* 工具栏：横向滚动 */
+  /* 名称：卡片标题，加粗分隔 */
+  table.ch-table tbody td:nth-child(3) {
+    font-size: 14.5px;
+    font-weight: 600;
+    padding-bottom: 7px;
+    margin-bottom: 6px;
+    border-bottom: 1px solid var(--border-subtle);
+  }
+
+  /* 频率类：等宽字体，清晰对齐 */
+  table.ch-table tbody td:nth-child(4),
+  table.ch-table tbody td:nth-child(5),
+  table.ch-table tbody td:nth-child(6) {
+    font-family: Consolas, monospace;
+    font-size: 13.5px;
+  }
+
+  /* 短字段：字号略小、颜色弱化 */
+  table.ch-table tbody td:nth-child(7),
+  table.ch-table tbody td:nth-child(8),
+  table.ch-table tbody td:nth-child(9),
+  table.ch-table tbody td:nth-child(10),
+  table.ch-table tbody td:nth-child(11) {
+    font-size: 12.5px;
+    color: var(--text-muted);
+  }
+
+  /* 状态：保持可读，加粗 */
+  table.ch-table tbody td:nth-child(12) {
+    font-size: 12px;
+    font-weight: 600;
+  }
+
+  /* 工具栏：横向滚动不折行 */
   .ch-toolbar {
-    overflow-x: auto; flex-wrap: nowrap;
-    padding-bottom: 6px; gap: 5px;
+    overflow-x: auto;
+    flex-wrap: nowrap;
+    padding-bottom: 6px;
+    gap: 5px;
     -webkit-overflow-scrolling: touch;
   }
-  .ch-toolbar button { flex: 0 0 auto; padding: 5px 10px; font-size: 12px; }
+  .ch-toolbar button {
+    flex: 0 0 auto;
+    padding: 5px 10px;
+    font-size: 12px;
+  }
 
+  /* 编辑面板限高 */
   .edit-panel { max-height: 60vh; }
+
+  /* VFO 单栏 */
   .vfo-layout { grid-template-columns: 1fr; }
 
+  /* 顶部工具栏 */
   .toolbar { gap: 6px; padding: var(--space-s) 10px; }
-  .toolbar .status { margin-left: 0; width: 100%; text-align: center; }
+  .toolbar .status {
+    margin-left: 0;
+    width: 100%;
+    text-align: center;
+  }
 
+  /* 设置页单栏 */
   .settings-grid { grid-template-columns: 1fr; max-width: 100%; }
-  .settings-grid > div:nth-child(odd) { font-size: 12px; color: var(--text-muted); margin-bottom: -4px; }
-  
+  .settings-grid > div:nth-child(odd) {
+    font-size: 12px;
+    color: var(--text-muted);
+    margin-bottom: -4px;
+  }
+
   .tab { padding: 7px 13px; font-size: 13px; }
   .log-box { height: calc(100vh - 230px); }
 }
