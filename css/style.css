@@ -530,7 +530,7 @@ select { appearance: none; background-image: linear-gradient(45deg, transparent 
   .toolbar .btn { flex-shrink: 0; height: 36px; font-size: 13.5px; }
   .toolbar-vr { display: none; }
 
-  /* ---------- 信道卡片：flex-wrap 两列 ---------- */
+  /* ---------- 信道卡片：Grid 显式定位 ---------- */
   .table-wrap {
     overflow: visible;
     border: none;
@@ -552,29 +552,6 @@ select { appearance: none; background-image: linear-gradient(45deg, transparent 
     width: 100%;
   }
 
-  /* ---------- 信道卡片：Grid 显式定位，第一行固定三格 ---------- */
-  .table-wrap {
-    overflow: visible;
-    border: none;
-    background: transparent;
-    flex: none;
-  }
-  .ch-table {
-    display: block;
-    width: 100%;
-    min-width: 0;
-    border-collapse: separate;
-    border-spacing: 0;
-  }
-  .ch-table thead { display: none; }
-  .ch-table tbody {
-    display: flex;
-    flex-direction: column;
-    gap: 10px;
-    width: 100%;
-  }
-
-  /* 5 列：24px 复选框列 + 4 个等宽列；参数每格跨 2 列 = 50% */
   .ch-table tbody tr {
     display: grid;
     grid-template-columns: 24px repeat(4, minmax(0, 1fr));
@@ -606,37 +583,31 @@ select { appearance: none; background-image: linear-gradient(45deg, transparent 
 
   /* 第一行：复选框 / CH / 名称 */
   .ch-table tbody td:nth-child(1) {
-    grid-column: 1;
-    grid-row: 1;
-    display: flex;
-    align-items: center;
+    grid-column: 1; grid-row: 1;
+    display: flex; align-items: center;
   }
   .ch-table tbody td:nth-child(1)::before { content: none; }
   .ch-table tbody td:nth-child(1) input { width: 20px; height: 20px; margin: 0; }
 
   .ch-table tbody td:nth-child(2) {
-    grid-column: 2;
-    grid-row: 1;
+    grid-column: 2; grid-row: 1;
     font-family: Consolas, monospace;
-    font-size: 14px;
-    font-weight: 600;
+    font-size: 14px; font-weight: 600;
     color: var(--text-2);
     align-self: center;
   }
   .ch-table tbody td:nth-child(2)::before { content: none; }
 
   .ch-table tbody td:nth-child(3) {
-    grid-column: 3 / 6;
-    grid-row: 1;
+    grid-column: 3 / 6; grid-row: 1;
     text-align: right;
-    font-size: 16px;
-    font-weight: 600;
+    font-size: 16px; font-weight: 600;
     color: var(--text);
     align-self: center;
   }
   .ch-table tbody td:nth-child(3)::before { content: none; }
 
-  /* 参数：从第 2 行开始，两列并排，每格跨 2 列 */
+  /* 参数：两列并排，每格跨 2 列 */
   .ch-table tbody td:nth-child(4)  { grid-column: 2 / 4; grid-row: 2; }
   .ch-table tbody td:nth-child(5)  { grid-column: 4 / 6; grid-row: 2; }
   .ch-table tbody td:nth-child(6)  { grid-column: 2 / 4; grid-row: 3; }
@@ -647,7 +618,6 @@ select { appearance: none; background-image: linear-gradient(45deg, transparent 
   .ch-table tbody td:nth-child(11) { grid-column: 4 / 6; grid-row: 5; }
   .ch-table tbody td:nth-child(12) { grid-column: 2 / 6; grid-row: 6; }
 
-  /* 参数标签：固定 40px + 值紧跟 */
   .ch-table tbody td:nth-child(n+4)::before {
     content: attr(data-label);
     display: inline-block;
@@ -658,7 +628,6 @@ select { appearance: none; background-image: linear-gradient(45deg, transparent 
     color: var(--text-3);
   }
 
-  /* 标签文案 */
   .ch-table tbody td:nth-child(4)::before  { content: "接收"; }
   .ch-table tbody td:nth-child(5)::before  { content: "发射"; }
   .ch-table tbody td:nth-child(6)::before  { content: "差频"; }
@@ -669,21 +638,20 @@ select { appearance: none; background-image: linear-gradient(45deg, transparent 
   .ch-table tbody td:nth-child(11)::before { content: "扫描"; }
   .ch-table tbody td:nth-child(12)::before { content: "状态"; }
 
-  /* 频率等宽字体 */
   .ch-table tbody td:nth-child(4),
   .ch-table tbody td:nth-child(5),
   .ch-table tbody td:nth-child(6) {
     font-family: Consolas, monospace;
     font-size: 14px;
   }
-
-  /* 状态左对齐、加粗 */
   .ch-table tbody td:nth-child(12) {
     font-weight: 600;
     text-align: left;
   }
 
-  /* ---------- 全屏编辑面板 ---------- */
+  /* ============================================================
+     全屏编辑面板 —— 从右侧滑入
+     ============================================================ */
   .edit-pane {
     position: fixed;
     inset: 0;
@@ -696,10 +664,10 @@ select { appearance: none; background-image: linear-gradient(45deg, transparent 
     transition: transform .25s cubic-bezier(.4, 0, .2, 1);
     overflow-y: auto;
     overflow-x: hidden;
-    display: flex;
-    flex-direction: column;
   }
-  .edit-pane.mobile-open { transform: translateX(0); }
+  .edit-pane.mobile-open {
+    transform: translateX(0);
+  }
 
   .empty-edit { height: 100dvh; padding: 24px; }
 
@@ -731,13 +699,16 @@ select { appearance: none; background-image: linear-gradient(45deg, transparent 
     font-size: 18px;
     color: var(--accent);
   }
-  .edit-head .btn-sm { height: 36px; padding: 0 12px; font-size: 13.5px; }
+  .edit-head .btn-sm {
+    height: 36px;
+    padding: 0 12px;
+    font-size: 13.5px;
+  }
 
+  /* 表单内容区（JS 会设 display:block，这里不写 display） */
   #chEditForm {
     padding: 16px;
-    padding-bottom: calc(100px + env(safe-area-inset-bottom));
-    display: flex;
-    flex-direction: column;
+    padding-bottom: calc(90px + env(safe-area-inset-bottom));
   }
   #chEditForm .form-row { gap: 12px; margin-bottom: 14px; }
   #chEditForm .field label { font-size: 13px; }
@@ -747,6 +718,7 @@ select { appearance: none; background-image: linear-gradient(45deg, transparent 
   .form-row.cols-3 { grid-template-columns: 1fr; }
   input, select { height: 44px; font-size: 15px; padding: 0 12px; }
 
+  /* 底部固定操作栏 */
   #chEditForm .form-actions {
     position: fixed;
     bottom: 0;
