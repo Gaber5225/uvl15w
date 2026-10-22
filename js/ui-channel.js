@@ -126,6 +126,7 @@ function selectChannel(index) {
   $("f_step").value = ch.step != null ? ch.step : 2;
   $("f_scan").value = item.scan != null ? item.scan : 0;
 
+  $("chEditPanel").classList.add("mobile-open");
   renderChannelTable();
 }
 
@@ -448,8 +449,13 @@ function bindChannelEvents() {
   $("f_tx").oninput = () => applyDupToUI("f_", $("f_rx").value, $("f_tx").value);
   $("f_encType").onchange = () => fillToneSelect($("f_encIndex"), parseInt($("f_encType").value), null);
   $("f_decType").onchange = () => fillToneSelect($("f_decIndex"), parseInt($("f_decType").value), null);
-
-  $("btnChApply").onclick = () => commitChannelEdit(true);
+  $("btnChBack").onclick = () => {
+    $("chEditPanel").classList.remove("mobile-open");
+  };
+    $("btnChApply").onclick = () => {
+    const ok = commitChannelEdit(true);
+    if (ok) $("chEditPanel").classList.remove("mobile-open");
+  };
   $("btnChApplyNext").onclick = () => {
     commitChannelEdit(true);
     const nx = state.editingIndex + 1;
