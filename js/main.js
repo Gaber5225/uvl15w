@@ -128,6 +128,7 @@ document.addEventListener("DOMContentLoaded", () => {
   NS.bindVfoEvents();
   NS.bindDeviceEvents();
   NS.bindSettingsEvents();
+  if (NS.bindRepeaterMapEvents) NS.bindRepeaterMapEvents();
   bindMainEvents();
 
   NS.initChannels();

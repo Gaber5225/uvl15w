@@ -37,6 +37,8 @@
   <symbol id="i-moon" viewBox="0 0 24 24"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/></symbol>
   <symbol id="i-menu" viewBox="0 0 24 24"><path d="M3 6h18M3 12h18M3 18h18"/></symbol>
   <symbol id="i-pointer" viewBox="0 0 24 24"><path d="m3 3 7 17 2.5-6.5L19 11 3 3z"/></symbol>
+  <symbol id="i-map" viewBox="0 0 24 24"><path d="M12 21s-7-6.3-7-11a7 7 0 0 1 14 0c0 4.7-7 11-7 11z"/><circle cx="12" cy="10" r="2.5"/></symbol>
+  <symbol id="i-pin" viewBox="0 0 24 24"><path d="M12 22s-6-5.4-6-10a6 6 0 1 1 12 0c0 4.6-6 10-6 10z"/><circle cx="12" cy="12" r="2.4"/></symbol>
   <symbol id="i-refresh" viewBox="0 0 24 24"><path d="M21 12a9 9 0 1 1-2.6-6.4"/><path d="M21 3v6h-6"/></symbol>
   <symbol id="i-close" viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></symbol>
 </svg>
@@ -60,6 +62,9 @@
       </button>
       <button type="button" class="tab" data-tab="vfo">
         <svg class="icon"><use href="#i-wave"/></svg><span>频率模式</span>
+      </button>
+      <button type="button" class="tab" data-tab="map">
+        <svg class="icon"><use href="#i-map"/></svg><span>附近中继</span>
       </button>
       <button type="button" class="tab" data-tab="dev">
         <svg class="icon"><use href="#i-cpu"/></svg><span>设备信息</span>
@@ -510,6 +515,16 @@
           </section>
 
           <section class="card">
+            <header class="card-head"><h3>天地图（附近中继地图）</h3></header>
+            <p class="hint-inline card-note">「附近中继」页使用天地图（Tianditu）显示全国中继台位置。需免费 Token：在 <a href="https://console.tianditu.gov.cn/api/key" target="_blank" rel="noopener">tianditu.gov.cn 控制台</a> 申请「浏览器端」Key，粘贴到下方并保存。留空时地图不显示，但列表与「填入 VFO A / 写入信道」功能仍可用。</p>
+            <div class="field"><label for="setTiandituKey">天地图 Token (tk)</label><input id="setTiandituKey" placeholder="例如 你的天地图密钥" autocomplete="off"></div>
+            <div class="btn-row btn-row-wrap">
+              <button id="btnSaveKey" class="primary">保存 Token</button>
+              <button id="btnClearKey" class="blue">清除</button>
+            </div>
+          </section>
+
+          <section class="card">
             <header class="card-head"><h3>本地配置</h3></header>
             <p class="hint-inline card-note">配置可保存到浏览器 localStorage，也可导出 / 导入 JSON 文件进行备份或迁移。</p>
             <div class="btn-row btn-row-wrap">
@@ -519,6 +534,57 @@
               <button id="btnImportJson">导入 JSON</button>
             </div>
           </section>
+        </div>
+      </div>
+
+      <!-- ========== 附近中继（地图） ========== -->
+      <div class="page" id="page-map">
+        <div class="map-layout">
+          <div class="map-main">
+            <div class="map-canvas" id="mapCanvas"></div>
+            <div class="map-tip" id="mapTip">
+              <div class="map-tip-inner">
+                <strong id="mapTipTitle">正在加载天地图…</strong>
+                <p id="mapTipBody">若长时间未显示，请到「设置」中填写天地图 Token（tk）。</p>
+              </div>
+            </div>
+            <div class="map-pick-hint" id="mapPickHint">点击地图任意位置，将其设为搜索中心点</div>
+          </div>
+          <aside class="rpt-side">
+            <div class="rpt-ctrl">
+              <div class="rpt-ctrl-row">
+                <button id="btnLocate" class="primary"><svg class="icon"><use href="#i-map"/></svg>定位我的位置</button>
+                <button id="btnPickCenter"><svg class="icon"><use href="#i-pointer"/></svg>地图选点</button>
+                <span class="rpt-center" id="rptCenterLabel">中心点：北京（默认）</span>
+              </div>
+              <div class="rpt-ctrl-row rpt-coord">
+                <label>纬度</label><input id="rptLat" inputmode="decimal" placeholder="39.9042">
+                <label>经度</label><input id="rptLng" inputmode="decimal" placeholder="116.4074">
+                <button id="btnSetCenter">设为中点</button>
+              </div>
+              <div class="rpt-ctrl-row rpt-legend">
+                <span class="legend-item"><i class="dot dot-center"></i>搜索中心</span>
+                <span class="legend-item"><i class="dot dot-rep"></i>附近中继</span>
+              </div>
+              <div class="rpt-ctrl-row rpt-radius">
+                <span class="rpt-radius-label">半径</span>
+                <div class="chip-group" id="rptRadiusGroup">
+                  <button class="chip" data-r="10">10km</button>
+                  <button class="chip" data-r="25">25km</button>
+                  <button class="chip active" data-r="50">50km</button>
+                  <button class="chip" data-r="100">100km</button>
+                  <button class="chip" data-r="300">300km</button>
+                </div>
+              </div>
+              <div class="rpt-ctrl-row rpt-target">
+                <label for="rptTargetCh">默认写入信道</label>
+                <select id="rptTargetCh"></select>
+                <button id="btnApplyTargetCh">应用到全部</button>
+              </div>
+              <p class="rpt-count" id="rptCount">—</p>
+            </div>
+            <div class="rpt-list" id="rptList"></div>
+          </aside>
         </div>
       </div>
 
@@ -588,6 +654,8 @@
 <script src="js/ui-vfo.js"></script>
 <script src="js/ui-device.js"></script>
 <script src="js/ui-settings.js"></script>
+<script src="js/repeaters-csv.js"></script>
+<script src="js/ui-repeater-map.js"></script>
 <script src="js/main.js"></script>
 <script>
 /* ============ 纯展示层增强（不触碰任何业务逻辑） ============ */
@@ -715,6 +783,7 @@
   var TITLES = {
     ch:  ["信道读写", "读取、编辑并写入对讲机信道参数"],
     vfo: ["频率模式", "VFO A / B 频率参数与临时中继快捷区"],
+    map: ["附近中继", "基于天地图查找附近中继台，一键填入 VFO A 或写入信道"],
     dev: ["设备信息", "机型、版本、序列号与密码校验"],
     log: ["通信日志", "串口 / 蓝牙通信帧实时记录"],
     set: ["设置", "通信参数、BLE UUID 与本地配置"]
