@@ -75,7 +75,7 @@ guardrail-ids.json      # DOM 元素 id / class 清单（防护用）
 
 ## 附近中继地图
 
-「附近中继」页使用[天地图（Tianditu）](https://console.tianditu.gov.cn/api/key)显示全国中继台位置，需免费申请「浏览器端」Token 并粘贴到「设置 → 天地图 Token」。
+「附近中继」页使用[天地图（Tianditu）](https://cloudcenter.tianditu.gov.cn/center/development/myApp)显示全国中继台位置，需免费申请「浏览器端」Token 并粘贴到「设置 → 天地图 Token」。
 
 > 未填 Token 时地图不显示，但中继列表与「填入 VFO A / 写入信道」功能仍可用。
 
